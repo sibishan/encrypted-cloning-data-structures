@@ -1,58 +1,70 @@
 # callum will work on this array data structure class
 class Array:
-    def __init__(self, elements, size, capacity, dtype, address, dimensions, stride):
+    def __init__(self, elements, capacity, dtype):
         self.elements = elements        # The actual stored values
-        self.size = size                # Num of elements in the array
-        self.capacity = capacity        # Total allocated space
+        self.size = len(self.elements)                # Num of elements in the array
+        self.capacity = max(capacity, self.size)        # Total allocated space
         self.dtype = dtype              # Element data type
-        self.address = address          # Memory address for first element
-        self.dimensions = dimensions    # If multidimensional, axis size
-        self.stride = stride            # Byte offset between elements in each dimension
+
+        self.address = 0x1ffa5a
+        self.stride = 4
+
+    # Python will print this when we request to see our data in CLI
+    def __repr__(self):
+        return f"Array({self.elements}, size={self.size}, capacity={self.capacity}, data={self.dtype})"
 
     def get(self, index):
-        return self.elements[index]
+        if 0 <= index < self.size:
+            return self.elements[index]
+        raise IndexError("index out of range")
 
     def set(self, index, value):
-        self.elements[index] = value
+        if 0 <= index < self.size:
+            self.elements[index] = value
+        raise IndexError("index out of range")
 
     def insert(self, index, value):
         self.elements.insert(index, value)
+        self.size += 1
 
     def append(self, value):
-        self.elements.append(value)
+        if self.size < self.capacity:
+            self.elements.append(value)
+            self.size += 1
 
     def remove(self, value):
-        self.elements.remove(value)
+        if value in self.elements:
+            self.elements.remove(value)
+            self.size -= 1
+        else:
+            raise ValueError("value not in array")
 
     def search(self, value):
         return self.elements.index(value)
 
     def sort(self):
-        self.elements.sort()
+        try:
+            return self.elements.sort()
+        except ValueError:
+            return -1
 
     def reverse(self):
         self.elements.reverse()
 
     def slice(self, start, end):
-        return self.elements.slice(start, end)
-
-    def merge(self, other):
-        return self.elements.merge(other)
-
-    def traverse(self, value):
-        self.elements.traverse(value)
-
-    def resize(self, new_size):
-        self.elements.resize(new_size)
+        return self.elements.slice[start:end]
 
     def clear(self):
-        self.elements.clear()
+        self.elements = []
+        self.size = 0
 
     def isEmpty(self):
-        return self.elements.isEmpty()
+        return self.size == 0
 
     def contains(self, value):
-        return self.elements.contains(value)
+        return value in self.elements
 
-my_array = Array([1, 2, 3, 4], 4, 5, 6, 7)
-my_array.access()
+my_array = Array([1, 2, 3, 4], capacity=5, dtype=int)
+my_array.isEmpty()
+my_array.append(5)
+print(my_array)
