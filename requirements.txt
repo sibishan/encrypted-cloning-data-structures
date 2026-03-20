@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 dill==0.4.1
 numpy==2.4.3
 qiskit==2.3.1
@@ -7,3 +8,5 @@ stevedore==5.7.0
 typing_extensions==4.15.0
 matplotlib==3.10.8
 pylatexenc==2.10
+=======
+>>>>>>> 61555d0 (Implement array)
