@@ -1,10 +1,11 @@
 from protocol import Protocol
 
-N = 3
-S = 2
+N = 1
+S = 3
 
 protocol = Protocol(N, S)
-qc = protocol.build_encoder()
-print(qc.draw())
+qc = protocol.build_circuit()
+qc.draw('mpl', filename='circuit.png')
+print(qc.draw(fold=-1))
 print("\n\n")
 
