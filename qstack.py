@@ -4,7 +4,7 @@ class QStack:
     def __init__(self, num_qubits=0, num_clones=0):
         self.num_qubits = num_qubits
         self.num_clones = num_clones
-        self.count = 0
+        self.size = 0
         self.protocol = Protocol(self.num_qubits, self.num_clones)
         self._get_qc = False
 
@@ -15,11 +15,11 @@ class QStack:
             raise ValueError("Input circuit cannot be None")
         if qc.num_qubits != 1:
             raise ValueError("Input must be a single-qubit circuit")
-        if self.count >= (self.num_qubits):
+        if self.size >= (self.num_qubits):
             raise OverflowError("QStack Overflow")
         
-        self.protocol.store_qubit(qc, self.count)
-        self.count += 1
+        self.protocol.store_qubit(qc, self.size)
+        self.size += 1
 
     def pop(self, c_index=0):
         if self._get_qc:
@@ -29,7 +29,7 @@ class QStack:
         if c_index >= self.num_clones or c_index < 0:
             raise ValueError("c_index out of bounds")
         
-        temp = self.count - 1
+        temp = self.size - 1
         self.protocol.retrieve_qubit(temp)
     
     def draw(self):
@@ -40,15 +40,15 @@ class QStack:
         return self.protocol.get_qc()
 
     def is_empty(self):
-        return self.count == 0
+        return self.size == 0
     
     def is_full(self):
-        return self.count == self.num_qubits
+        return self.size == self.num_qubits
     
     def size(self):
-        return self.count
+        return self.size
     
     def clear(self):
-        self.count = 0
+        self.size = 0
         self.protocol = Protocol(self.num_qubits, self.num_clones)
         self._get_qc = False

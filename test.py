@@ -39,5 +39,8 @@ array.set(1, a)
 array.get(0)
 array.get(1, 2)
 
+qc = array.generate_circuit()
+array.set(1, a)
+
 img = array.draw()
 img.savefig('misc/circuit.png', bbox_inches='tight')

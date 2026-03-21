@@ -4,7 +4,7 @@ class QArray:
     def __init__(self, num_qubits=0, num_clones=0):
         self.num_qubits = num_qubits
         self.num_clones = num_clones
-        self.count = 0
+        self.size = 0
         self.protocol = Protocol(self.num_qubits, self.num_clones)
         self._get_qc = False
 
@@ -18,7 +18,8 @@ class QArray:
         if c_index >= self.num_clones or c_index < 0:
             raise IndexError("c_index out of bounds")
         
-        return self.protocol.retrieve_qubit(a_index, c_index)
+        self.protocol.retrieve_qubit(a_index, c_index)
+        self.size -= 1
 
 
     def set(self, index=None, qc=None):
@@ -32,14 +33,17 @@ class QArray:
             raise IndexError("index out of bounds")
         
         self.protocol.store_qubit(qc, index)
+        self.size += 1
 
     def draw(self):
         return self.protocol.qc.draw(output='mpl', fold=-1)
-        
+    
+    def generate_circuit(self):
+        self._get_qc = True
+        return self.protocol.qc
 
-    # def insert(self, index, value):
-    #     self.elements.insert(index, value)
-    #     self.size += 1
+    # def insert(self, index, qc=None):
+        
 
     # def append(self, value):
     #     if self.size < self.capacity:
