@@ -36,6 +36,8 @@ a.initialize(psi, 0)
 
 array.set(0, a)
 array.set(1, a)
+array.get(0)
+array.get(1, 2)
 
 img = array.draw()
 img.savefig('misc/circuit.png', bbox_inches='tight')

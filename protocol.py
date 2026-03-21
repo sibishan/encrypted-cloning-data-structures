@@ -30,7 +30,6 @@ class Protocol:
 
         self.qc = self._init_circuit()
 
-
     def _init_circuit(self):
         qc = QuantumCircuit(
             *[self.A[i]['reg'] for i in self.A],
@@ -66,15 +65,15 @@ class Protocol:
             self._s_in_use(index, i, True)
             self._n_in_use(index, i, True)
 
-    def retrieve_qubit(self, a_index, c_index=None):
-        if c_index is None:
-            c_index = 0
+    def retrieve_qubit(self, a_index, c_index):
         n = self.num_clones
 
         if not self._a_in_use(a_index):
-            raise ValueError(f"Qubit A_{a_index} has not been stored")
+            raise ValueError(f"Qubit A_{a_index} has nothing stored")
         if c_index < 0 or c_index >= n:
             raise IndexError(f"Clone index {c_index} out of bounds")
+        if not self._s_in_use(a_index, c_index) or not self._n_in_use(a_index, c_index):
+            raise ValueError(f"Clone S_{a_index}_{c_index} qubits not in use")
         
         sigma = [
             np.eye(2, dtype=complex),                           # σ_0 = I
@@ -112,14 +111,14 @@ class Protocol:
         self.qc.unitary(U_dec, qubits_msb_first[::-1],
                         label=f'U_dec({a_index},{c_index})')
         self.qc.swap(self._a(a_index), self._s(a_index, c_index))
-        self.qc.barrier()
 
         for i in range(n):
             self.qc.reset(self._n(a_index, i))
             self.qc.reset(self._s(a_index, i))
             self._s_in_use(a_index, i, False)
             self._n_in_use(a_index, i, False)
-            
+        
+        self.qc.barrier()
     
     def get_qc(self):
         return self.qc

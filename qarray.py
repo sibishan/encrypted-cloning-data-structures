@@ -8,10 +8,18 @@ class QArray:
         self.protocol = Protocol(self.num_qubits, self.num_clones)
         self._get_qc = False
 
-    # def get(self, index):
-    #     if 0 <= index < self.size:
-    #         return self.elements[index]
-    #     raise IndexError("index out of range")
+    def get(self, a_index=None, c_index=0):
+        if self._get_qc:
+            raise RuntimeError("Cannot get qubits after finalising the protocol circuit")
+        if a_index is None:
+            raise ValueError("Qubit A index and Clone index cannot be Null")
+        if a_index >= self.num_qubits or a_index < 0:
+            raise IndexError("a_index out of bounds")
+        if c_index >= self.num_clones or c_index < 0:
+            raise IndexError("c_index out of bounds")
+        
+        return self.protocol.retrieve_qubit(a_index, c_index)
+
 
     def set(self, index=None, qc=None):
         if self._get_qc:

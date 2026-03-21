@@ -27,7 +27,7 @@ class QStack:
         if self.is_empty():
             raise IndexError("QStack is empty")
         if c_index >= self.num_clones or c_index < 0:
-            raise ValueError("Invalid clone index")
+            raise ValueError("c_index out of bounds")
         
         temp = self.count - 1
         self.protocol.retrieve_qubit(temp)
