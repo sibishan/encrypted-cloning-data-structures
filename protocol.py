@@ -1,156 +1,118 @@
-# Being built by Joshua the Architect, master of all creation
+from qiskit import QuantumRegister, QuantumCircuit
 
-from qiskit import QuantumRegister, QuantumCircuit, transpile
-from qiskit.quantum_info import (
-    random_statevector, Statevector,
-    partial_trace, state_fidelity
-)
-from qiskit_aer import AerSimulator
 import numpy as np
 
 
 class Protocol:
-    def __init__(self, n_qubits_to_clone: int, n_clones: int):
-        self.n_qubits_to_clone = n_qubits_to_clone
-        self.n_clones = n_clones
+    def __init__(self, num_qubits=0, num_clones=0):
+        self.num_qubits = num_qubits
+        self.num_clones = num_clones
         self.sigma = [
             np.eye(2, dtype=complex),                           # σ_0 = I
             np.array([[0, 1],  [1, 0]],  dtype=complex),        # σ_1 = X
             np.array([[0, -1j],[1j, 0]], dtype=complex),        # σ_2 = Y
             np.array([[1, 0],  [0, -1]], dtype=complex),        # σ_3 = Z
         ]
-        self.A = QuantumRegister(n_qubits_to_clone, 'A')
-        self.S = QuantumRegister(n_qubits_to_clone * n_clones, 'S')
-        self.N = QuantumRegister(n_qubits_to_clone * n_clones, 'N')
-        self.qc = None
+        
+        self.A = {}
+        for i in range(self.num_qubits):
+            self.A[i] = QuantumRegister(1, name=f'A{i}')
 
-    # ------------------------------------------------------------------ #
-    #  Public                                                              #
-    # ------------------------------------------------------------------ #
+        self.S = {}
+        self.N = {}
+        for i in range(self.num_qubits):
+            for j in range(self.num_clones):
+                self.S[i,j] = QuantumRegister(1, name=f'S_{i}_{j}')
+                self.N[i,j] = QuantumRegister(1, name=f'N_{i}_{j}')
 
-    def build_circuit(self, psi=None, seed=42) -> QuantumCircuit:
-        """Full encode → decrypt pipeline."""
-        if psi is None:
-            self.psi = random_statevector(2, seed=seed)
-        else:
-            self.psi = psi
+        self.qc = self._init_circuit()
+        self.count = 0
 
-        self.qc = QuantumCircuit(self.A, self.S, self.N)
 
-        # Initialise A with |ψ⟩
-        for i in range(self.n_qubits_to_clone):
-            self.qc.initialize(self.psi, self.A[i])
-
+    def _init_circuit(self):
+        qc = QuantumCircuit(*self.A.values(), *self.S.values(), *self.N.values())
         # Bell pairs  |ϕ⟩_{S_j N_j}  for every (i, j) group
-        for i in range(self.n_qubits_to_clone):
-            for j in range(self.n_clones):
-                idx = i * self.n_clones + j
-                self.qc.h(self.S[idx])
-                self.qc.cx(self.S[idx], self.N[idx])
+        for i in range(self.num_qubits):
+            for j in range(self.num_clones):
+                qc.h(self.S[i, j][0])
+                qc.cx(self.S[i, j][0], self.N[i, j][0])
+        qc.barrier(label='init')
+        return qc
 
-        # ---- Encryption  U_enc = exp(-iπ/4 σ1^A⊗σ1^S…) · exp(-iπ/4 σ3^A⊗σ3^S…) ----
-        self.qc.barrier(label='encrypt')
-        self._apply_zz_factor()   # exp(-iπ/4 σ3⊗σ3⊗…)  — ZZ interaction
-        self._apply_xx_factor()   # exp(-iπ/4 σ1⊗σ1⊗…)  — XX interaction (H-sandwiched)
+    def store_qubit(self, qc):
+        if qc.num_qubits != 1:
+            raise ValueError("Input must be a single-qubit circuit")
+        if self.count >= self.num_qubits-1:
+            raise OverflowError("No more qubits can be stored")
+        
+        self.qc = self.qc.compose(qc, qubits=[self.A[self.count][0]])
+        # Encrypted Cloning  U_enc = exp(-iπ/4 σ1^A⊗σ1^S…) · exp(-iπ/4 σ3^A⊗σ3^S…)
+        self._apply_zz_factor(self.count)   # exp(-iπ/4 σ3⊗σ3⊗…)  — ZZ interaction
+        self._apply_xx_factor(self.count)   # exp(-iπ/4 σ1⊗σ1⊗…)  — XX interaction (H-sandwiched)
+        self.count += 1
+    
+    def decrypt_clone(self, qc):
+        pass
 
-        # ---- Decryption  U_dec  (unitary block per qubit group) ----
-        self.qc.barrier(label='decrypt')
-        self._apply_decryption()
-        return self.qc
-
-    def verify_fidelity(self) -> float:
-        qc_sv = self.qc.copy()
-        qc_sv.save_statevector()
-
-        sim = AerSimulator(method='statevector')
-        result = sim.run(transpile(qc_sv, sim)).result()
-        sv = Statevector(result.get_statevector())
-
-        n_total = self.qc.num_qubits
-        s0_index = self.n_qubits_to_clone
-
-        trace_out = [q for q in range(n_total) if q != s0_index]
-        rho_s0 = partial_trace(sv, trace_out)
-        fidelity = state_fidelity(rho_s0, Statevector(self.psi))
-        print(f"Fidelity of S[0] with |ψ⟩: {fidelity:.6f}")
-        return fidelity
-
-    # ------------------------------------------------------------------ #
-    #  Encryption helpers                                                #
-    # ------------------------------------------------------------------ #
-
-    def _zz_cascade(self, i: int):
-        base = i * self.n_clones
-
+    def _apply_zz_factor(self, index):
         # Forward: fan parity of A into the S chain
-        self.qc.cx(self.A[i], self.S[base])
-        for j in range(self.n_clones - 1):
-            self.qc.cx(self.S[base + j], self.S[base + j + 1])
-
+        self.qc.cx(self.A[index][0], self.S[index, 0][0])
+        for i in range(self.num_clones-1):
+            self.qc.cx(self.S[index, i][0], self.S[index, i + 1][0])
+        
         # Rz(2t) with t = π/4  →  Rz(π/2) on the last S qubit
-        self.qc.rz(np.pi / 2, self.S[base + self.n_clones - 1])
+        self.qc.rz(np.pi/2, self.S[index, self.num_clones - 1][0])
 
         # Backward: uncompute the parity ladder
-        for j in reversed(range(self.n_clones - 1)):
-            self.qc.cx(self.S[base + j], self.S[base + j + 1])
-        self.qc.cx(self.A[i], self.S[base])
+        for i in range(self.num_clones-1, 0, -1):
+            self.qc.cx(self.S[index, i - 1][0], self.S[index, i][0])
+        self.qc.cx(self.A[index][0], self.S[index, 0][0])
 
-    def _apply_zz_factor(self):
-        for i in range(self.n_qubits_to_clone):
-            self._zz_cascade(i)
+    def _apply_xx_factor(self, index):
+        # H on A and all S in this group
+        self.qc.h(self.A[index][0])
+        for i in range(self.num_clones):
+            self.qc.h(self.S[index, i][0])
 
-    def _apply_xx_factor(self):
-        for i in range(self.n_qubits_to_clone):
-            base = i * self.n_clones
+        self._apply_zz_factor(index)
 
-            # H on A and all S in this group
-            self.qc.h(self.A[i])
-            for j in range(self.n_clones):
-                self.qc.h(self.S[base + j])
+        # H again to return to Z basis
+        self.qc.h(self.A[index][0])
+        for i in range(self.num_clones):
+            self.qc.h(self.S[index, i][0])
 
-            self._zz_cascade(i)
+    # def _build_decryption_unitary(self, n: int) -> np.ndarray:
+    #     alpha = np.array([1, 1j, -(1j) ** (n + 1), 1j], dtype=complex)
+    #     phi_vec = np.array([1, 0, 0, 1], dtype=complex) / np.sqrt(2)
 
-            # H again to return to Z basis
-            self.qc.h(self.A[i])
-            for j in range(self.n_clones):
-                self.qc.h(self.S[base + j])
+    #     dim = 2 ** (n + 1)
+    #     U_dec = np.zeros((dim, dim), dtype=complex)
 
-    # ------------------------------------------------------------------ #
-    #  Decryption  (Eq. 5 of paper)                                       #
-    # ------------------------------------------------------------------ #
+    #     for mu in range(4):
+    #         # |ϕ_μ⟩ = (σ_μ ⊗ I)|ϕ⟩
+    #         phi_mu = np.kron(self.sigma[mu], np.eye(2)) @ phi_vec
+    #         proj_mu = np.outer(phi_mu, phi_mu.conj())
 
-    def _build_decryption_unitary(self, n: int) -> np.ndarray:
-        alpha = np.array([1, 1j, -(1j) ** (n + 1), 1j], dtype=complex)
-        phi_vec = np.array([1, 0, 0, 1], dtype=complex) / np.sqrt(2)
+    #         # ⊗_{j=2}^{n} σ_μ^T  (scalar identity if n=1)
+    #         if n > 1:
+    #             noise_op = self.sigma[mu].T.copy()
+    #             for _ in range(n - 2):
+    #                 noise_op = np.kron(noise_op, self.sigma[mu].T)
+    #         else:
+    #             noise_op = np.array([[1]], dtype=complex)
 
-        dim = 2 ** (n + 1)
-        U_dec = np.zeros((dim, dim), dtype=complex)
+    #         U_dec += alpha[mu] * np.kron(proj_mu, noise_op)
 
-        for mu in range(4):
-            # |ϕ_μ⟩ = (σ_μ ⊗ I)|ϕ⟩
-            phi_mu = np.kron(self.sigma[mu], np.eye(2)) @ phi_vec
-            proj_mu = np.outer(phi_mu, phi_mu.conj())
+    #     return U_dec
 
-            # ⊗_{j=2}^{n} σ_μ^T  (scalar identity if n=1)
-            if n > 1:
-                noise_op = self.sigma[mu].T.copy()
-                for _ in range(n - 2):
-                    noise_op = np.kron(noise_op, self.sigma[mu].T)
-            else:
-                noise_op = np.array([[1]], dtype=complex)
+    # def _apply_decryption(self):
+    #     for i in range(self.num_qubits):
+    #         base = i * self.num_clones
+    #         U_dec = self._build_decryption_unitary(self.num_clones)
 
-            U_dec += alpha[mu] * np.kron(proj_mu, noise_op)
+    #         if self.num_clones > 1:
+    #             dec_qubits = [self.N[base + k] for k in range(self.num_clones - 1, -1, -1)] + [self.S[base]]
+    #         else:
+    #             dec_qubits = [self.N[base], self.S[base]]
 
-        return U_dec
-
-    def _apply_decryption(self):
-        for i in range(self.n_qubits_to_clone):
-            base = i * self.n_clones
-            U_dec = self._build_decryption_unitary(self.n_clones)
-
-            if self.n_clones > 1:
-                dec_qubits = [self.N[base + k] for k in range(self.n_clones - 1, -1, -1)] + [self.S[base]]
-            else:
-                dec_qubits = [self.N[base], self.S[base]]
-
-            self.qc.unitary(U_dec, dec_qubits, label=f'U_dec({self.n_clones})')
+    #         self.qc.unitary(U_dec, dec_qubits, label=f'U_dec({self.num_clones})')
