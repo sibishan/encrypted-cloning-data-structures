@@ -57,9 +57,6 @@ class QStack:
     def is_full(self):
         return self.size == self.num_qubits
     
-    def get_size(self):
-        return self.size
-    
     def clear(self):
         self.size = 0
         self.protocol = Protocol(self.num_qubits, self.num_clones)

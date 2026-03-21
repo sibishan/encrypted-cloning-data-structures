@@ -46,14 +46,17 @@ class Protocol:
     def store_qubit(self, qc, index):
         if index >= self.num_qubits or index < 0:
             raise IndexError(f"{index} of Qubit A is out of bounds")
-        if self._a_in_use(index):
-            raise IndexError(f"Qubit A_{index} already in use")
 
+        flag = False
         for i in range(self.num_clones):
             if self._s_in_use(index, i) or self._n_in_use(index, i):
-                raise IndexError(f"Clone S_{index}_{i} qubits already in use")
+                flag = True
+                break
+        if flag and self._a_in_use(index):
+            raise IndexError(f"Qubit A_{index} already in use with clones")
 
-        self.qc = self.qc.compose(qc, qubits=[self._a(index)])
+        if qc is not None:
+            self.qc = self.qc.compose(qc, qubits=[self._a(index)])
         self._a_in_use(index, True)
 
         # Encrypted Cloning  U_enc = exp(-iπ/4 σ1^A⊗σ1^S…) · exp(-iπ/4 σ3^A⊗σ3^S…)
@@ -120,6 +123,15 @@ class Protocol:
         
         self.qc.barrier()
     
+    def swap_a(self, p, q):
+        if p >= self.num_qubits or p < 0 or q >= self.num_qubits or q < 0:
+            raise IndexError("index out of bounds")
+
+        self.qc.swap(self._a(p), self._a(q))
+        temp = self._a_in_use(p)
+        self._a_in_use(p, self._a_in_use(q))
+        self._a_in_use(q, temp)
+
     def get_qc(self):
         return self.qc
 

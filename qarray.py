@@ -4,6 +4,12 @@ class QArray:
     def __init__(self, num_qubits=0, num_clones=0):
         self.num_qubits = num_qubits
         self.num_clones = num_clones
+        self.lookup = {}
+        for i in range(self.num_qubits):
+            self.lookup[i] = {
+                'a': False,
+                's': False,
+            }
         self.size = 0
         self.protocol = Protocol(self.num_qubits, self.num_clones)
         self._get_qc = False
@@ -19,8 +25,7 @@ class QArray:
             raise IndexError("c_index out of bounds")
         
         self.protocol.retrieve_qubit(a_index, c_index)
-        self.size -= 1
-
+        self.lookup[a_index]['s'] = False
 
     def set(self, index=None, qc=None):
         if self._get_qc:
@@ -34,6 +39,8 @@ class QArray:
         
         self.protocol.store_qubit(qc, index)
         self.size += 1
+        self.lookup[index]['a'] = True
+        self.lookup[index]['s'] = True
 
     def draw(self):
         return self.protocol.qc.draw(output='mpl', fold=-1)
@@ -42,7 +49,25 @@ class QArray:
         self._get_qc = True
         return self.protocol.qc
 
-    # def insert(self, index, qc=None):
+    def insert(self, index, qc=None):
+        if self._get_qc:
+            raise RuntimeError("Cannot insert qubits after finalising the protocol circuit")
+        if index is None or qc is None:
+            raise ValueError("index and qc cannot be Null")
+        if qc.num_qubits != 1:
+            raise ValueError("Input must be a single-qubit circuit")
+        if index >= self.num_qubits or index < 0:
+            raise IndexError("index out of bounds")
+        
+        for i in range(index, self.size):
+            self.protocol.retrieve_qubit(i, 0)
+        for i in range(self.size-1, index-1, -1):
+            self.protocol.swap_a(i, i+1)
+        for i in range(index+1, self.size+1):
+            self.protocol.store_qubit(qc=None, index=i)
+        
+        self.protocol.store_qubit(qc, index)
+        self.size += 1
         
 
     # def append(self, value):
