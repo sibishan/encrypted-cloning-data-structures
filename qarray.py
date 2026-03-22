@@ -65,8 +65,8 @@ class QArray:
         for i in range(self.size-1, index-1, -1):
             self.protocol.swap_a(i, i+1)
             temp = self.lookup[i]['status']
-            self.lookup[i]['status'] = self.lookup[i-1]['status']
-            self.lookup[i-1]['status'] = temp
+            self.lookup[i]['status'] = self.lookup[i+1]['status']
+            self.lookup[i+1]['status'] = temp
         for i in range(index+1, self.size+1):
             if self.lookup[i]['status'] == "set":
                 self.protocol.store_qubit(qc=None, index=i)
@@ -74,11 +74,19 @@ class QArray:
         self.protocol.store_qubit(qc, index)
         self.size += 1
         
-
-    # def append(self, value):
-    #     if self.size < self.capacity:
-    #         self.elements.append(value)
-    #         self.size += 1
+    def append(self, qc=None):
+        if self._get_qc:
+            raise RuntimeError("Cannot append qubits after finalising the protocol circuit")
+        if qc is None:
+            raise ValueError("qc cannot be Null")
+        if qc.num_qubits != 1:
+            raise ValueError("Input must be a single-qubit circuit")
+        if self.size >= self.num_qubits:
+            raise IndexError("Array is full")
+        
+        self.protocol.store_qubit(qc, self.size)
+        self.lookup[self.size]['status'] = "set"
+        self.size += 1
 
     # def remove(self, value):
     #     if value in self.elements:

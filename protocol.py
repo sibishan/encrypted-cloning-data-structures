@@ -85,7 +85,7 @@ class Protocol:
             np.array([[1, 0],  [0, -1]], dtype=complex),        # σ_3 = Z
         ]
 
-        # α_0 = 1, α_1 = α_3 = i, α_2 = -i^{n+1}   (Eq. 5)
+        # α_0 = 1, α_1 = α_3 = i, α_2 = -i^{n+1}
         alpha = [1, 1j, -(1j) ** (n + 1), 1j]
 
         # Bell states |ϕ_μ⟩ = (σ_μ ⊗ I)|ϕ_0⟩  as 4-vectors
