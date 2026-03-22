@@ -110,7 +110,6 @@ class QArray:
             if self.lookup[i]['status'] == "set":
                 self.protocol.store_qubit(qc=None, index=i)
         
-
     def reverse(self):
         if self._get_qc:
             raise RuntimeError("Cannot reverse qubits after finalising the protocol circuit")
@@ -127,14 +126,18 @@ class QArray:
         for i in range(self.size):
             if self.lookup[i]['status'] == "set":
                 self.protocol.store_qubit(qc=None, index=i)
-            
-        
 
-    # def clear(self):
-
-
-    # def is_empty(self):
-    #     return self.size == 0
+    def is_empty(self):
+        return self.size == 0
     
-    # def is_full(self):
-    #     return self.size >= self.capacity
+    def is_full(self):
+        return self.size == self.num_qubits
+
+    def clear(self):
+        self.size = 0
+        self.protocol = Protocol(self.num_qubits, self.num_clones)
+        self._get_qc = False
+        for i in range(self.num_qubits):
+            self.lookup[i] = {
+                'status': ''
+            }

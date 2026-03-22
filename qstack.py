@@ -61,3 +61,7 @@ class QStack:
         self.size = 0
         self.protocol = Protocol(self.num_qubits, self.num_clones)
         self._get_qc = False
+        for i in range(self.num_qubits):
+            self.lookup[i] = {
+                'flag': False,
+            }
