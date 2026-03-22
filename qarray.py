@@ -155,8 +155,11 @@ class QArray:
 
         for i in range(self.num_qubits):
             width = max(len(f"A_{i}"), 4)
-            if self.lookup[i]['status'] in ("set", "get"):
+            if self.lookup[i]['status'] == "set":
                 cell = f" A_{i} ".center(width + 2)
+            elif self.lookup[i]['status'] == "get":
+                label = f"A_{i}"
+                cell = f"░{label}░".center(width + 2, '░')
             else:
                 cell = " · ".center(width + 2)
 
@@ -165,7 +168,6 @@ class QArray:
             bottom += "─" * (width + 2) + "┴"
             labels += str(i).center(width + 2) + " "
 
-        # replace trailing connectors with corners
         top    = top[:-1]    + "┐"
         bottom = bottom[:-1] + "┘"
 

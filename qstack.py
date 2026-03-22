@@ -65,3 +65,39 @@ class QStack:
             self.lookup[i] = {
                 'flag': False,
             }
+    
+    def __repr__(self):
+        header = f"QStack(size={self.size}, capacity={self.num_qubits})\n"
+        if self.num_qubits == 0:
+            return header + "┌──┐\n│  │\n└──┘  (empty)"
+
+        width = max(len(f"A_{self.num_qubits - 1}") + 4, 10)
+
+        # find actual top: highest index with flag=True
+        top = -1
+        for i in range(self.size - 1, -1, -1):
+            if self.lookup[i]['flag']:
+                top = i
+                break
+
+        lines = []
+        lines.append("  ┌" + "─" * width + "┐")
+
+        for i in range(self.num_qubits - 1, -1, -1):
+            if self.lookup[i]['flag']:
+                cell = f"A_{i}".center(width)
+            elif i < self.size:
+                # popped slot — shade it
+                label = f"A_{i}"
+                cell = f"░{label}░".center(width, '░')
+            else:
+                cell = "·".center(width)
+
+            pointer = "→ " if i == top else "  "
+            lines.append(f"{pointer}│{cell}│")
+            if i > 0:
+                lines.append("  ├" + "─" * width + "┤")
+
+        lines.append("  └" + "─" * width + "┘")
+
+        return header + "\n".join(lines)
