@@ -72,6 +72,7 @@ class QArray:
                 self.protocol.store_qubit(qc=None, index=i)
         
         self.protocol.store_qubit(qc, index)
+        self.lookup[index]['status'] = "set"
         self.size += 1
         
     def append(self, qc=None):
@@ -141,3 +142,31 @@ class QArray:
             self.lookup[i] = {
                 'status': ''
             }
+    
+    def __repr__(self):
+        header = f"QArray(size={self.size}, capacity={self.num_qubits})\n"
+        if self.num_qubits == 0:
+            return header + "┌──┐\n│  │\n└──┘  (empty)"
+
+        top    = "┌"
+        middle = "│"
+        bottom = "└"
+        labels = " "
+
+        for i in range(self.num_qubits):
+            width = max(len(f"A_{i}"), 4)
+            if self.lookup[i]['status'] in ("set", "get"):
+                cell = f" A_{i} ".center(width + 2)
+            else:
+                cell = " · ".center(width + 2)
+
+            top    += "─" * (width + 2) + "┬"
+            middle += cell + "│"
+            bottom += "─" * (width + 2) + "┴"
+            labels += str(i).center(width + 2) + " "
+
+        # replace trailing connectors with corners
+        top    = top[:-1]    + "┐"
+        bottom = bottom[:-1] + "┘"
+
+        return f"{header}{top}\n{middle}\n{bottom}\n{labels}"
