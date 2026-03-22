@@ -37,9 +37,12 @@ a.initialize(psi, 0)
 
 array.set(0, a)
 array.set(1, a)
-# array.set(2, a)
 array.set(3, a)
 array.reverse()
+array.set(1, a)
+array.remove(2)
+array.get(2)
+array.insert(1, a)
 
 
 # qc = array.generate_circuit()
