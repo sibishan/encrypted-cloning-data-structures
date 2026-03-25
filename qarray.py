@@ -10,6 +10,7 @@ class QArray:
                 'status': ''
             }
         self.size = 0
+        self._tail = 0
         self.protocol = Protocol(self.num_qubits, self.num_clones)
         self._get_qc = False
 
@@ -40,7 +41,8 @@ class QArray:
         
         self.protocol.store_qubit(qc, index)
         self.lookup[index]['status'] = "set"
-        self.size = max(self.size, index + 1)
+        self.size += 1
+        self._tail = max(self._tail, index + 1)
 
     def draw(self):
         return self.protocol.qc.draw(output='mpl', fold=-1)
@@ -59,21 +61,22 @@ class QArray:
         if index >= self.num_qubits or index < 0:
             raise IndexError("index out of bounds")
         
-        for i in range(index, self.size):
+        for i in range(index, self._tail):
             if self.lookup[i]['status'] == "set":
                  self.protocol.retrieve_qubit(i, 0)
-        for i in range(self.size-1, index-1, -1):
-            self.protocol.swap_a(i, i+1)
+        for i in range(self._tail - 1, index - 1, -1):
+            self.protocol.swap_a(i, i + 1)
             temp = self.lookup[i]['status']
-            self.lookup[i]['status'] = self.lookup[i+1]['status']
-            self.lookup[i+1]['status'] = temp
-        for i in range(index+1, self.size+1):
+            self.lookup[i]['status'] = self.lookup[i + 1]['status']
+            self.lookup[i + 1]['status'] = temp
+        for i in range(index + 1, self._tail + 1):
             if self.lookup[i]['status'] == "set":
                 self.protocol.store_qubit(qc=None, index=i)
         
         self.protocol.store_qubit(qc, index)
         self.lookup[index]['status'] = "set"
         self.size += 1
+        self._tail += 1
         
     def append(self, qc=None):
         if self._get_qc:
@@ -82,51 +85,53 @@ class QArray:
             raise ValueError("qc cannot be Null")
         if qc.num_qubits != 1:
             raise ValueError("Input must be a single-qubit circuit")
-        if self.size >= self.num_qubits:
+        if self._tail >= self.num_qubits:
             raise IndexError("Array is full")
         
-        self.protocol.store_qubit(qc, self.size)
-        self.lookup[self.size]['status'] = "set"
+        self.protocol.store_qubit(qc, self._tail)
+        self.lookup[self._tail]['status'] = "set"
         self.size += 1
+        self._tail += 1
 
     def remove(self, index=None):
         if self._get_qc:
             raise RuntimeError("Cannot remove qubits after finalising the protocol circuit")
         if index is None:
             raise ValueError("index cannot be Null")
-        if index >= self.size or index < 0:
+        if index >= self._tail or index < 0:
             raise IndexError("index out of bounds")
         
         self.protocol.uncompute_a(index)
         self.lookup[index]['status'] = ""
-        for i in range(index+1, self.size):
+        for i in range(index + 1, self._tail):
             if self.lookup[i]['status'] == "set":
                 self.protocol.retrieve_qubit(i, 0)
-        for i in range(index, self.size):
-            self.protocol.swap_a(i, i+1)
+        for i in range(index, self._tail):
+            self.protocol.swap_a(i, i + 1)
             temp = self.lookup[i]['status']
-            self.lookup[i]['status'] = self.lookup[i+1]['status']
-            self.lookup[i+1]['status'] = temp
-        for i in range(index, self.size-1):
+            self.lookup[i]['status'] = self.lookup[i + 1]['status']
+            self.lookup[i + 1]['status'] = temp
+        for i in range(index, self._tail - 1):
             if self.lookup[i]['status'] == "set":
                 self.protocol.store_qubit(qc=None, index=i)
         
         self.size -= 1
+        self._tail -= 1
         
     def reverse(self):
         if self._get_qc:
             raise RuntimeError("Cannot reverse qubits after finalising the protocol circuit")
         
-        for i in range(self.size):
+        for i in range(self._tail):
             if self.lookup[i]['status'] == "set":
                 self.protocol.retrieve_qubit(i, 0)
-        for i in range(self.size // 2):
-            j = self.size - 1 - i
+        for i in range(self._tail // 2):
+            j = self._tail - 1 - i
             self.protocol.swap_a(i, j)
             temp = self.lookup[i]['status']
             self.lookup[i]['status'] = self.lookup[j]['status']
             self.lookup[j]['status'] = temp
-        for i in range(self.size):
+        for i in range(self._tail):
             if self.lookup[i]['status'] == "set":
                 self.protocol.store_qubit(qc=None, index=i)
 
@@ -134,10 +139,11 @@ class QArray:
         return self.size == 0
     
     def is_full(self):
-        return self.size == self.num_qubits
+        return self._tail >= self.num_qubits
 
     def clear(self):
         self.size = 0
+        self._tail = 0
         self.protocol = Protocol(self.num_qubits, self.num_clones)
         self._get_qc = False
         for i in range(self.num_qubits):

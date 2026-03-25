@@ -7,29 +7,29 @@ from qiskit.quantum_info import random_statevector
 A = 5
 S = 2
 
-stack = QStack(num_qubits=A, num_clones=S)
+# stack = QStack(num_qubits=A, num_clones=S)
 
-a = QuantumCircuit(1)
-psi = random_statevector(2)
-a.initialize(psi, 0)
+# a = QuantumCircuit(1)
+# psi = random_statevector(2)
+# a.initialize(psi, 0)
 
-print(stack)
-stack.push(a)
-print(stack)
-stack.pop()
-print(stack)
-# qc = stack.generate_circuit()
-stack.push(a)
-stack.push(a)
-print(stack)
-stack.pop()
-print(stack)
-stack.pop()
-print(stack)
+# print(stack)
+# stack.push(a)
+# print(stack)
+# stack.pop()
+# print(stack)
+# # qc = stack.generate_circuit()
+# stack.push(a)
+# stack.push(a)
+# print(stack)
+# stack.pop()
+# print(stack)
+# stack.pop()
+# print(stack)
 
 
-img = stack.draw()
-img.savefig('misc/stack-circuit.png', bbox_inches='tight')
+# img = stack.draw()
+# img.savefig('misc/stack-circuit.png', bbox_inches='tight')
 
 array = QArray(num_qubits=A, num_clones=S)
 
