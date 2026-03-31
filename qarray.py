@@ -60,6 +60,8 @@ class QArray:
             raise ValueError("Input must be a single-qubit circuit")
         if index >= self.num_qubits or index < 0:
             raise IndexError("index out of bounds")
+        if self.size >= self.num_qubits:
+            raise IndexError("Array is full")
         
         for i in range(index, self._tail):
             if self.lookup[i]['status'] == "set":
