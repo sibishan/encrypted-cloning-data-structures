@@ -9,7 +9,7 @@ class QStack:
             self.lookup[i] = {
                 'flag': False,
             }
-        self.size = 0
+        self._size = 0
         self.protocol = Protocol(self.num_qubits, self.num_clones)
         self._get_qc = False
 
@@ -20,12 +20,12 @@ class QStack:
             raise ValueError("Input circuit cannot be None")
         if qc.num_qubits != 1:
             raise ValueError("Input must be a single-qubit circuit")
-        if self.size >= (self.num_qubits):
+        if self._size >= (self.num_qubits):
             raise OverflowError("QStack Overflow")
         
-        self.protocol.store_qubit(qc, self.size)
-        self.lookup[self.size]['flag'] = True
-        self.size += 1
+        self.protocol.store_qubit(qc, self._size)
+        self.lookup[self._size]['flag'] = True
+        self._size += 1
 
     def pop(self, c_index=0):
         if self._get_qc:
@@ -36,7 +36,7 @@ class QStack:
             raise ValueError("c_index out of bounds")
         
         idx = 0
-        for i in range(self.size-1, -1, -1):
+        for i in range(self._size-1, -1, -1):
             if self.lookup[i]['flag']:
                 idx = i
                 break
@@ -52,13 +52,16 @@ class QStack:
         return self.protocol.get_qc()
 
     def is_empty(self):
-        return self.size == 0
+        return self._size == 0
     
     def is_full(self):
-        return self.size == self.num_qubits
+        return self._size == self.num_qubits
+    
+    def size(self):
+        return self._size
     
     def clear(self):
-        self.size = 0
+        self._size = 0
         self.protocol = Protocol(self.num_qubits, self.num_clones)
         self._get_qc = False
         for i in range(self.num_qubits):
@@ -67,7 +70,7 @@ class QStack:
             }
     
     def __repr__(self):
-        header = f"QStack(size={self.size}, capacity={self.num_qubits})\n"
+        header = f"QStack(size={self._size}, capacity={self.num_qubits})\n"
         if self.num_qubits == 0:
             return header + "┌──┐\n│  │\n└──┘  (empty)"
 
@@ -75,7 +78,7 @@ class QStack:
 
         # find actual top: highest index with flag=True
         top = -1
-        for i in range(self.size - 1, -1, -1):
+        for i in range(self._size - 1, -1, -1):
             if self.lookup[i]['flag']:
                 top = i
                 break
@@ -86,7 +89,7 @@ class QStack:
         for i in range(self.num_qubits - 1, -1, -1):
             if self.lookup[i]['flag']:
                 cell = f"A_{i}".center(width)
-            elif i < self.size:
+            elif i < self._size:
                 # popped slot — shade it
                 label = f"A_{i}"
                 cell = f"░{label}░".center(width, '░')

@@ -9,7 +9,7 @@ class QArray:
             self.lookup[i] = {
                 'status': ''
             }
-        self.size = 0
+        self._size = 0
         self._tail = 0
         self.protocol = Protocol(self.num_qubits, self.num_clones)
         self._get_qc = False
@@ -41,7 +41,7 @@ class QArray:
         
         self.protocol.store_qubit(qc, index)
         self.lookup[index]['status'] = "set"
-        self.size += 1
+        self._size += 1
         self._tail = max(self._tail, index + 1)
 
     def draw(self):
@@ -60,7 +60,7 @@ class QArray:
             raise ValueError("Input must be a single-qubit circuit")
         if index >= self.num_qubits or index < 0:
             raise IndexError("index out of bounds")
-        if self.size >= self.num_qubits:
+        if self._size >= self.num_qubits:
             raise IndexError("Array is full")
         
         for i in range(index, self._tail):
@@ -77,7 +77,7 @@ class QArray:
         
         self.protocol.store_qubit(qc, index)
         self.lookup[index]['status'] = "set"
-        self.size += 1
+        self._size += 1
         self._tail += 1
         
     def append(self, qc=None):
@@ -92,7 +92,7 @@ class QArray:
         
         self.protocol.store_qubit(qc, self._tail)
         self.lookup[self._tail]['status'] = "set"
-        self.size += 1
+        self._size += 1
         self._tail += 1
 
     def remove(self, index=None):
@@ -117,7 +117,7 @@ class QArray:
             if self.lookup[i]['status'] == "set":
                 self.protocol.store_qubit(qc=None, index=i)
         
-        self.size -= 1
+        self._size -= 1
         self._tail -= 1
         
     def reverse(self):
@@ -138,13 +138,16 @@ class QArray:
                 self.protocol.store_qubit(qc=None, index=i)
 
     def is_empty(self):
-        return self.size == 0
+        return self._size == 0
     
     def is_full(self):
-        return self.size == self.num_qubits
+        return self._size == self.num_qubits
+    
+    def size(self):
+        return self._size
 
     def clear(self):
-        self.size = 0
+        self._size = 0
         self._tail = 0
         self.protocol = Protocol(self.num_qubits, self.num_clones)
         self._get_qc = False
@@ -154,7 +157,7 @@ class QArray:
             }
     
     def __repr__(self):
-        header = f"QArray(size={self.size}, capacity={self.num_qubits})\n"
+        header = f"QArray(size={self._size}, capacity={self.num_qubits})\n"
         if self.num_qubits == 0:
             return header + "┌──┐\n│  │\n└──┘  (empty)"
 
