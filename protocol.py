@@ -153,6 +153,9 @@ class Protocol:
 
     def get_qc(self):
         return self.qc
+    
+    def draw(self):
+        return self.qc.draw(output='mpl', fold=-1)
 
     def _apply_zz_factor(self, index):
         # Forward: fan parity of A into the S chain
